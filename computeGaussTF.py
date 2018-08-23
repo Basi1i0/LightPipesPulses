@@ -68,15 +68,6 @@ def density_mean(F):
 def density_var(F):
     return numpy.sqrt(numpy.dot(F, (numpy.array(range(0, len(F)))  - density_mean(F) )**2 ) / sum(F) )
     
-#def SpecGenerate(lambda0, sigma, specN, doplot = False):
-#    lambdas = numpy.linspace(lambda0 - 3*sigma, lambda0 + 3*sigma, specN) #linspace(800e-9 - 3*sigma, 800e-9 + 3*sigma, 50) #sort(random.uniform(800e-9 - 3*sigma, 800e-9 + 3*sigma, 50)) #random.normal(mean(lambdas), sigma/24, 500) #[800e-9]#
-#    amps = numpy.exp(-(lambdas - lambda0 )**2 / sigma**2/2 )#[1]
-#    tau = numpy.mean(lambdas)**2/sigma/(2*numpy.pi) 
-#    if(doplot):
-#        plt.plot(lambdas, amps, '.') 
-#        plt.show()
-#    return lambdas,amps,sigma,lambda0,specN,tau
-
 def StepsGenerator(start, end, steps):
     delta=(end-start)/steps
     zs = numpy.linspace(start, end, steps, endpoint=False)
@@ -155,8 +146,8 @@ if __name__ == '__main__':
         
     wt_z = numpy.array(list(map(density_var, numpy.swapaxes(numpy.swapaxes(Izt0yx, 0, 2), 1, 3)[N//2][N//2]  )))*delta_t
     #wt_zyx = numpy.apply_along_axis(density_var, 1, Izt0yx)*delta_z/3e-4
-    wx_z = numpy.array(list(map(density_var, sum(Izt0yx, axis = (1,2)) )))*numpy.sqrt(2)*size/N
-    wy_z = numpy.array(list(map(density_var, sum(Izt0yx, axis = (1,3)) )))*numpy.sqrt(2)*size/N
+    wx_z = numpy.array(list(map(density_var, numpy.sum(Izt0yx, axis = (1,2)) )))*numpy.sqrt(2)*size/N
+    wy_z = numpy.array(list(map(density_var, numpy.sum(Izt0yx, axis = (1,3)) )))*numpy.sqrt(2)*size/N
 
     plt.plot(zs, wt_z/3e-7, 'o')
     plt.plot(zs, numpy.repeat(s.tau/3e-7/numpy.sqrt(2), len(zs)))
