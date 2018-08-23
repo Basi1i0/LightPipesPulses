@@ -13,6 +13,7 @@ from joblib import Parallel, delayed
 from LightPipes import cm, mm, nm
 
 import timeit
+import SpecGenerator
 
 
 def GetIntensityDependence(x, ts, zs, useRunningTime = False):
@@ -67,14 +68,14 @@ def density_mean(F):
 def density_var(F):
     return numpy.sqrt(numpy.dot(F, (numpy.array(range(0, len(F)))  - density_mean(F) )**2 ) / sum(F) )
     
-def SpecGenerate(lambda0, sigma, specN, doplot = False):
-    lambdas = numpy.linspace(lambda0 - 3*sigma, lambda0 + 3*sigma, specN) #linspace(800e-9 - 3*sigma, 800e-9 + 3*sigma, 50) #sort(random.uniform(800e-9 - 3*sigma, 800e-9 + 3*sigma, 50)) #random.normal(mean(lambdas), sigma/24, 500) #[800e-9]#
-    amps = numpy.exp(-(lambdas - lambda0 )**2 / sigma**2/2 )#[1]
-    tau = numpy.mean(lambdas)**2/sigma/(2*numpy.pi) 
-    if(doplot):
-        plt.plot(lambdas, amps, '.') 
-        plt.show()
-    return lambdas,amps,sigma,lambda0,specN,tau
+#def SpecGenerate(lambda0, sigma, specN, doplot = False):
+#    lambdas = numpy.linspace(lambda0 - 3*sigma, lambda0 + 3*sigma, specN) #linspace(800e-9 - 3*sigma, 800e-9 + 3*sigma, 50) #sort(random.uniform(800e-9 - 3*sigma, 800e-9 + 3*sigma, 50)) #random.normal(mean(lambdas), sigma/24, 500) #[800e-9]#
+#    amps = numpy.exp(-(lambdas - lambda0 )**2 / sigma**2/2 )#[1]
+#    tau = numpy.mean(lambdas)**2/sigma/(2*numpy.pi) 
+#    if(doplot):
+#        plt.plot(lambdas, amps, '.') 
+#        plt.show()
+#    return lambdas,amps,sigma,lambda0,specN,tau
 
 def StepsGenerator(start, end, steps):
     delta=(end-start)/steps
@@ -88,17 +89,17 @@ def Propogate(x, zs, ts, t0, n_jobs = 1, useRunningTime = False):
     return numpy.array([item for sublist in Izt0yx for item in sublist])
 
 def r1(z):
-    AdS =alpha/w1/(tau/2.998e-4)
-    kw2 = (2*numpy.pi/lambda0 * w1**2)
+    AdS =alpha/w1/(s.tau/2.998e-4)
+    kw2 = (2*numpy.pi/s.lambda0 * w1**2)
     D2 = kw2 / f
     Z = z / kw2
     return 1 + D2**2 *(-1 + D2*Z)**2 *(1 + AdS**2)
 
 
 def r2(z):
-    AdS  = alpha/w1/(tau/2.998e-4)
-    BdS2 = -b/((tau/2.998e-7)**2)
-    kw2 = (2*numpy.pi/lambda0 * w1**2)
+    AdS  = alpha/w1/(s.tau/2.998e-4)
+    BdS2 = -b/((s.tau/2.998e-7)**2)
+    kw2 = (2*numpy.pi/s.lambda0 * w1**2)
     D2 = kw2 / f
     Z = z / kw2
     return (1 + BdS2*D2*(-1 + D2*Z))**2 + (BdS2 - D2*(-1 + D2*Z)*(1 + AdS**2))**2
@@ -117,7 +118,7 @@ if __name__ == '__main__':
     x = None; Izt0yx = None; Iztyx = None; Ixtyz = None; Iytxz = None;
     gc.collect()
 
-    lambdas,amps,sigma_s,lambda0,steps_s,tau = SpecGenerate(800*nm, 3*nm, 120, False)
+    s = SpecGenerator.SpecGenerate(800*nm, 3*nm, 120, False)
     
     n_jobs = 2
     N = 170
@@ -125,18 +126,18 @@ if __name__ == '__main__':
     f = 100*mm
     alpha = 0.1*mm # mm*ps
     b = 0.8e5 #fs**2
-    w1 = f/(2*numpy.pi/lambda0)/(0.1*mm)
+    w1 = f/(2*numpy.pi/s.lambda0)/(0.1*mm)
     
-    x = lpPulse(lambdas, amps, size, N)#LP(size, 800e-9, N)#
-    x.GaussAperture(f/(2*numpy.pi/lambda0)/w1, 0*mm, 0, 1)
+    x = lpPulse(s.lambdas, s.amps, size, N)#LP(size, 800e-9, N)#
+    x.GaussAperture(f/(2*numpy.pi/s.lambda0)/w1, 0*mm, 0, 1)
     x.AddDispersion(b, 2)   
-    x.GratingX( alpha*2*numpy.pi*(2.998*1e-4) / (f*lambda0**2) , 800e-9)
+    x.GratingX( alpha*2*numpy.pi*(2.998*1e-4) / (f*s.lambda0**2) , 800e-9)
    
     t0 = PrePropogation(x, f)
        
     start_z,end_z,steps_z,delta_z,zs = StepsGenerator(0.8*f, 1.2*f, 40)
-    start_t,end_t,steps_t,delta_t,ts = StepsGenerator(-3*tau*numpy.sqrt(1 + (alpha/w1/(tau/2.998e-4))**2), 
-                                                       3*tau*numpy.sqrt(1 + (alpha/w1/(tau/2.998e-4))**2), 100)#2e-6*alpha*lambda0/w1**3 
+    start_t,end_t,steps_t,delta_t,ts = StepsGenerator(-3*s.tau*numpy.sqrt(1 + (alpha/w1/(s.tau/2.998e-4))**2), 
+                                                       3*s.tau*numpy.sqrt(1 + (alpha/w1/(s.tau/2.998e-4))**2), 100)#2e-6*alpha*lambda0/w1**3 
         
     start_time = timeit.default_timer()
     Izt0yx = Propogate(x, zs, ts, t0, n_jobs, True)
@@ -158,14 +159,14 @@ if __name__ == '__main__':
     wy_z = numpy.array(list(map(density_var, sum(Izt0yx, axis = (1,3)) )))*numpy.sqrt(2)*size/N
 
     plt.plot(zs, wt_z/3e-7, 'o')
-    plt.plot(zs, numpy.repeat(tau/3e-7/numpy.sqrt(2), len(zs)))
-    plt.plot(zs, tau/3e-7/numpy.sqrt(2) * numpy.sqrt(r2(zs)/r1(zs)))
+    plt.plot(zs, numpy.repeat(s.tau/3e-7/numpy.sqrt(2), len(zs)))
+    plt.plot(zs, s.tau/3e-7/numpy.sqrt(2) * numpy.sqrt(r2(zs)/r1(zs)))
     plt.xlabel('Z, m'); plt.ylabel('\Delta T, fs') 
     plt.ylim( 0, max(wt_z)*1.1/3e-7 ) 
     plt.show()
 
     plt.plot(zs, wx_z/mm, 'o')
-    plt.plot(zs, lambda0/(2*numpy.pi)*f/w1 * numpy.sqrt(r1(zs)) / mm )
+    plt.plot(zs, s.lambda0/(2*numpy.pi)*f/w1 * numpy.sqrt(r1(zs)) / mm )
 #    plt.xlabel('Z, m'); plt.ylabel('\Delta X, mm') 
 #    plt.show()  
     plt.plot(zs, wy_z/mm, 'o')
