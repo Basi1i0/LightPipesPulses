@@ -14,33 +14,34 @@ from joblib import Parallel, delayed
 
 from LightPipes import cm, mm, nm
 
-import timeit
+import scipy
+import StepsGenerator
 
 def AxiconZ(z):
    return 2*numpy.pi* k0**2 * w1**6 *z/a**2/(k0**2 * w1**4 + z**2)**(3/2) *numpy.exp( - z**2 * w1**2 /a**2 /(k0**2 * w1**4 + z**2) ) # 2*numpy.pi*z/a**2/k0*numpy.exp( - z**2 /a**2 /k0**2 / w1**2 )
 
 ms = list([])
 #for scale in range(0,20):
-print(scale)
+#print(scale)
 
 lambda0 = 800*nm
 N = 400
 size = 0.0015
 xs =  numpy.linspace(-size/2, size/2, N)
 f = 100*mm
-alpha = 1/180*numpy.pi*(random.random() + 0.5)
 k0 = (2*numpy.pi/lambda0)
 n = 1.5
-a = 2.*1/(k0*(n - 1)*numpy.tan(alpha) ) # why 2.0 ???
+a = 0.1*mm /2*(random.random() + 0.5) #sigma_x # 2.*1/(k0*(n - 1)*numpy.tan(alpha) ) # why 2.0 ???
+alpha = numpy.arctan( 2.*1/(k0*(n - 1)*a ) ) #1/180*numpy.pi
+w1 = 0.06 * 2/(a*k0)*(random.random() + 0.5) #sigma_zw #0.0005
+
 
 x = LP(size, lambda0, N)
-
-w1 = 0.0005*(random.random() + 0.5)
 
 x.GaussAperture(w1, 0*mm, 0, 1)
 x.Axicon(numpy.pi - alpha, n, 0, 0)
 
-start_z,end_z,steps_z,delta_z,zs = StepsGenerator(0, 8*f, 200)
+zs,start_z,end_z,steps_z,delta_z = StepsGenerator.StepsGenerate(0, 8*f, 200)
  
 intensities_z = numpy.full( (len(zs), x.getGridDimension(), x.getGridDimension()), numpy.NaN);
 
