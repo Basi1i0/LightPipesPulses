@@ -9,10 +9,11 @@ import collections
 import numpy
 import matplotlib.pyplot as plt
 
-Spectrum = collections.namedtuple('Steps', ['start', 'end', 'steps', 'delta', 'points'])
+Steps = collections.namedtuple('Steps', ['points', 'start', 'end', 'steps', 'delta'])
+GridsAll = collections.namedtuple('GridsAll', ['x', 'z', 't'])
 
 def StepsGenerate(start, end, steps):
     delta=(end-start)/steps
     zs = numpy.linspace(start, end, steps, endpoint=False)
-    return Spectrum(start,end,steps,delta,zs)
+    return Steps(zs,start,end,steps,delta)
 
