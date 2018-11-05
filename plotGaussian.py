@@ -16,40 +16,40 @@ import PropogationFunctions
 import PlotFunctions 
 import namedtuplesGaussTF
 import SaveLoad
+from r1r2 import*
 
-
-def r1(z, cp):
-    Z = z / cp.kw2
-    return 1 + cp.D2**2 *(-1 + cp.D2*Z)**2 *(1 + cp.AdS**2)
-
-
-def r2(z, cp):
-    Z = z / cp.kw2
-    return (1 + cp.BdS2*cp.D2*(-1 + cp.D2*Z))**2 + (cp.BdS2 - cp.D2*(-1 + cp.D2*Z)*(1 + cp.AdS**2))**2
-
-
+#plt.rcParams["figure.figsize"] = [6, 8]
 Izt0yx = None; Iztyx = None; Ixtyz = None; Iytxz = None;
 gc.collect()
+#
+dirname = 'C:\\Users\\Basil\\ResearchData\\FourierOptics\\GaussianTF\\' +\
+          '20181030091304_f=0.01_w1=2.55E-04_alpha=2.50E-05_b=0.00E+00'
+#          '\\_\\20181026080443_f=0.01_w1=5.09E-04_alpha=4.00E-05_b=6.00E+04\\'
 
-Izt0yx,s,lp,cp,g = SaveLoad.ReadDumpFromDisk(dirname, namedtuplesGaussTF.LaunchParams, namedtuplesGaussTF.ComputParmas)
+Izt0yx,s,lp,cp,g = SaveLoad.ReadDumpFromDisk(dirname, namedtuplesGaussTF.LaunchParams, 
+                                                      namedtuplesGaussTF.ComputParmas)
 
+plt.plot(numpy.linspace(1,100), numpy.linspace(1,100)**2)
 
 #    for different Z
 PlotFunctions.PlotMovie(numpy.sum(numpy.swapaxes(Izt0yx, 1, 3), axis =2 ),
                         (g.t.start/mm, g.t.end/mm), (-lp.size/2/mm, lp.size/2/mm),
-                        g.z.points, 'T, mm', 'X, mm', aspect = 1.5*lp.Nx/g.t.steps/g.t.delta*1e-6)
+                        g.z.points, 'T, mm', 'X, mm', aspect = lp.Nx/g.t.steps*0.2)
 
 wt_z,wx_z,wy_z = PropogationFunctions.Ws_z(lp, g, Izt0yx)
 
 plt.plot(g.z.points, wt_z/3e-7, 'o')
 plt.plot(g.z.points, numpy.repeat(s.tau/3e-7/numpy.sqrt(2), g.z.steps ))
-plt.plot(g.z.points, s.tau/3e-7/numpy.sqrt(2) * numpy.sqrt(r2(g.z.points, cp)/r1(g.z.points, cp)))
+plt.plot(g.z.points, numpy.repeat(s.tau/3e-7/numpy.sqrt(2)*numpy.sqrt(r2(0, cp)/r1(0, cp)), g.z.steps ) )
+plt.plot(g.z.points, 
+         s.tau/3e-7/numpy.sqrt(2) * numpy.sqrt(r2(g.z.points, cp)/r1(g.z.points, cp)))
 plt.xlabel('Z, m'); plt.ylabel('\Delta T, fs') 
 plt.ylim( 0, max(wt_z)*1.1/3e-7 ) 
 plt.show()
 
 plt.plot(g.z.points, wx_z/mm, 'o')
-plt.plot(g.z.points, s.lambda0/(2*numpy.pi)*lp.f/lp.w1 * numpy.sqrt(r1(g.z.points, cp)) / mm )
+plt.plot(g.z.points, 
+         s.lambda0/(2*numpy.pi)*lp.f/lp.w1 * numpy.sqrt(r1(g.z.points, cp)) / mm )
 #    plt.xlabel('Z, m'); plt.ylabel('\Delta X, mm') 
 #    plt.show()  
 plt.plot(g.z.points, wy_z/mm, 'o')
@@ -64,7 +64,7 @@ plt.show()
 #    steps_t2 = int(steps_t)
 #    start_t2 = -0.5*end_z; end_t2 = end_z*1.5;
 #    dt2 = (end_t2-start_t2)/steps_t2
-#    Iztyx = ConvertToRealTime(Izt0yx, start_t, delta_t, steps_t2, start_t2)
+#    Iztyx = ConvertToRealTime(Izt0yx, start_t, delta_t, steps_t2, start_t2
 Iztyx = Izt0yx
   
 
@@ -87,24 +87,30 @@ Ixy2p = numpy.swapaxes(numpy.swapaxes(Iyz2p, 2, 1), 1, 0)  # z x y
 
 max_intensity2p = numpy.max(Iyz2p[lp.Nx//2])
 plt.imshow(numpy.log(numpy.add(Iyz2p[lp.Nx//2], max_intensity2p/200 )), cmap='hot', 
-           vmin=numpy.log( max_intensity2p/200 ), vmax= numpy.log(max_intensity2p + max_intensity2p/200 ),
-           extent = [g.z.start, g.z.end, -lp.size/2/mm, lp.size/2/mm],  aspect=0.0005*lp.Nx/g.z.steps);
+           vmin = numpy.log( max_intensity2p/200 ), 
+           vmax = numpy.log(max_intensity2p + max_intensity2p/200 ),
+           extent = [g.z.start, g.z.end, -lp.size/2/mm, lp.size/2/mm],  
+           aspect = 0.005*g.z.steps/lp.Nx);
 plt.show()
 
 max_intensity2p = numpy.max(Iyz2p[lp.Nx//2])
 plt.imshow(numpy.log(numpy.add(Ixz2p[lp.Nx//2], max_intensity2p/200 )), cmap='hot', 
-           vmin=numpy.log( max_intensity2p/200 ), vmax= numpy.log(max_intensity2p + max_intensity2p/200 ),
-           extent = [g.z.start, g.z.end, -lp.size/2/mm, lp.size/2/mm],  aspect=0.0005*lp.Nx/g.z.steps);
+           vmin = numpy.log( max_intensity2p/200 ), 
+           vmax = numpy.log(max_intensity2p + max_intensity2p/200 ),
+           extent = [g.z.start, g.z.end, -lp.size/2/mm, lp.size/2/mm],  
+           aspect = 0.005*g.z.steps/lp.Nx);
 plt.show()
 
 
 
          
 plt.plot(g.z.points/mm, Iyz2p[lp.Nx//2][lp.Nx//2] / max(Iyz2p[lp.Nx//2][lp.Nx//2]), 'o' )
-plt.plot(g.z.points/mm, 1/numpy.sqrt(r1(g.z.points, cp)*r2(g.z.points, cp)) /max(1/numpy.sqrt(r1(g.z.points, cp)*r2(g.z.points, cp))) )
-
-plt.plot(g.z.points/mm, numpy.sum(Iytxz, axis = 1)[lp.Nx//2][lp.Nx//2] / max(numpy.sum(Iytxz, axis = 1)[lp.Nx//2][lp.Nx//2]), 'o' )
-plt.plot(g.z.points/mm, 1/numpy.sqrt(r1(g.z.points, cp)) / max(1/numpy.sqrt(r1(g.z.points, cp))) )
+plt.plot(g.z.points/mm, (1/numpy.sqrt(r1(g.z.points, cp)*r2(g.z.points, cp)) / \
+                         max(1/numpy.sqrt(r1(g.z.points, cp)*r2(g.z.points, cp))) )**1 )
+plt.plot(g.z.points/mm, numpy.sum(Iytxz, axis = 1)[lp.Nx//2][lp.Nx//2] / \
+                        max(numpy.sum(Iytxz, axis = 1)[lp.Nx//2][lp.Nx//2]), 'o' )
+plt.plot(g.z.points/mm, (1/numpy.sqrt(r1(g.z.points, cp)) / \
+                         max(1/numpy.sqrt(r1(g.z.points, cp))))**1 )
 
 plt.show()
 print('z scale FWHM is ', 

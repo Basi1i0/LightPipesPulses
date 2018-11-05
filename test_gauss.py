@@ -26,27 +26,28 @@ ms = list([])
 #for scale in range(0,20):
 #print(scale)
 
-lambda0 = 802*nm
-N = 500
-size = 1*mm
+lambda0 = 805*nm
+N = 1000
+size = 9*mm
 xs =  numpy.linspace(-size/2, size/2, N)
-f = 10*mm
+f = 50*mm
 k0 = (2*numpy.pi/lambda0)
-w1 =  0.01*mm#f/k0/(1*mm) #sigma_zw #0.0005
+w1 =   6.366197723675813e-05#f/k0/(1*mm) #sigma_zw #0.0005
 w0 = f/(k0*w1)
 sz = k0*w1**2
-alpha = (0.02*mm) 
+alpha = (0.15*mm) 
 
 x = LP(size, lambda0, N)
 
 x.GaussAperture(w1, 0*mm, 0, 1)
 
 x.GratingX( alpha*2*numpy.pi*(2.998*1e-4) / (f*lambda0**2) , 800e-9)
-   
-x.Forvard( f )
-x.Lens(f, 0, 0)
-x.Forvard( 2*f )
-x.Lens(f, 0, 0)
+#x.RandomPhase(1, 1)
+#x.Forvard(f)
+#x.Lens(f, 0.00, 0)
+#x.Forvard(2*f)
+#x.Lens(f, 0.00, 0)
+
 
 zs,start_z,end_z,steps_z,delta_z = StepsGenerator.StepsGenerate(0, 2*f, 200)
  
@@ -63,9 +64,10 @@ for iz in range(0, len(zs)):
        
 plt.imshow(intensities_z[:,N//2])
 plt.show()
-plt.plot(zs / mm, intensities_z[:,N//2, N//2] / max(intensities_z[:,N//2, N//2]), 'o' )
-plt.plot(zs / mm, 1/( 1 + ( (1 - zs/f)/(k0*w1**2/f) )**2  ) )
 
+
+plt.plot(zs / mm, intensities_z[:,N//2, N//2] / max(intensities_z[:,N//2, N//2]), 'o' )
+plt.plot(zs / mm, 1/( 1 + ( (f - zs)/(k0*w1**2) )**2  ) )
 plt.axvline(f / mm, )
 plt.xlabel('Z, mm'); plt.ylabel('I') 
 plt.show()

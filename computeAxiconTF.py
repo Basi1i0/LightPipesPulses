@@ -19,11 +19,11 @@ from LightPipes import cm, mm, nm
 import SpecGenerator
 import StepsGenerator
 import SaveLoad
-import namedtuplesGaussTF 
+import namedtuplesAxiconTF
 from r1r2 import *
     
 
-
+    
 def GetIntensityDependence(x, ts, zs, useRunningTime = False):
     intensities_z = numpy.full( (len(zs), len(ts), x.getGridDimension(), x.getGridDimension()), numpy.NaN);
     
@@ -51,42 +51,43 @@ def Propogate(x, zs, ts, t0, n_jobs = 1, useRunningTime = False):
     Izt0yx = numpy.array(Parallel(n_jobs=n_jobs, prefer="threads")(delayed(GetIntensityDependence)(copy.deepcopy(x), ts+t0, zs, True) for zs in zs_intervals))#GetIntensityDependence(x, ts+t0, zs, True)
     return numpy.array([item for sublist in Izt0yx for item in sublist])
     
-def PrePropogation(x, f, z = 0.): 
+def PrePropogation(x, f, z =0): 
 #    x.Axicon(175/180*3.1415, 2, 0, 0)
 #    x.Forvard(0.005)
     x.Forvard(f)
     x.Lens(f, 0.00, 0)
-    x.Forvard(2.*f)
+    x.Forvard(2*f)
     x.Lens(f, 0.00, 0)
     x.Forvard(z)
     return 3.*f + z
 
 #if __name__ == '__main__':
 def Run(s, lp):    
-    cp = namedtuplesGaussTF.ComputParmas((2*numpy.pi/s.lambda0 * lp.w1**2), lp.alpha/lp.w1/(s.tau/2.998e-4), 
-                                         -lp.b/((s.tau/2.998e-7)**2), (2*numpy.pi/s.lambda0 * lp.w1**2) / lp.f)
+#    s = SpecGenerator.SpecGenerate(800*nm, 3*nm, 120, False)
+#    lp = namedtuplesGaussTF.LaunchParams(n_jobs, Nx, Nz, Nt, size, f, w1, alpha,  b)
+    cp = namedtuplesAxiconTF.ComputParmas((2*numpy.pi/s.lambda0 * lp.w1**2), lp.alpha/lp.w1/(s.tau/2.998e-4), 
+                                          -lp.b/((s.tau/2.998e-7)**2), (2*numpy.pi/s.lambda0 * lp.w1**2) / lp.f)
     ztmax = 0
     if(lp.b != 0): ztmax = lp.f*(1 - 1/(cp.D2*cp.BdS2))
     
     tmaxr = numpy.sqrt(r2(ztmax, cp)/r1(ztmax, cp))
     zdr = 1/(cp.D2*numpy.sqrt(1 + cp.AdS**2))
     g  = StepsGenerator.GridsAll(StepsGenerator.StepsGenerate(-lp.size/2, lp.size/2, lp.Nx), 
-                                 StepsGenerator.StepsGenerate(max((1-zdr)*lp.f, 0), (1+zdr)*lp.f, lp.Nz), 
-                                 StepsGenerator.StepsGenerate(-3*tmaxr*s.tau, 3*tmaxr*s.tau, lp.Nt))#2e-6*lp.alpha*lambda0/w1**3
-    
+                                 StepsGenerator.StepsGenerate(max((1-2*zdr)*lp.f, 0), (1+2*zdr)*lp.f, lp.Nz), 
+                                 StepsGenerator.StepsGenerate(-5*tmaxr*s.tau, 5*tmaxr*s.tau, lp.Nt))#2e-6*lp.alpha*lambda0/w1**3
+     
     x = lpPulse(s.lambdas, s.amps, lp.size, lp.Nx)#LP(lp.size, 800e-9, lp.Nx)#
-    x.GaussAperture(lp.f/(2*numpy.pi/s.lambda0)/lp.w1, 0*mm, 0, 1)#lp.f/(2*numpy.pi/s.lambda0)/lp.w1
-#    x.AddDispersion(lp.b, 2)   
+    x.GaussAperture( lp.sz/(lp.a*(2*numpy.pi/s.lambda0) ) , 0*mm, 0, 1)
+    x.AddDispersion(lp.b, 2)   
+       
+    x.Axicon(numpy.pi - theta, n, 0, 0)
+    x.Forvard( sz/numpy.sqrt(2) )
     x.GratingX( lp.alpha*2*numpy.pi*(2.998*1e-4) / (lp.f*s.lambda0**2) , 800e-9)
-   
-#    for i in range(0, len(x.get_lambdas()) ):
-#        algular_dispersion = lp.alpha*2*numpy.pi*(2.998*1e-4) / (lp.f*s.lambda0**2) 
-#        x._lps[i].GratingX((-1)**numpy.random.randint(0,2) * algular_dispersion, s.lambda0)
-    
-    t0 = PrePropogation(x, lp.f, g.z.points[0] )
-    
-    xmax = lp.f/(2*numpy.pi/s.lambda0)/lp.w1*numpy.sqrt(r1(g.z.points[0], cp))
-    Nx2 = int(5*xmax*lp.Nx/lp.size); Nx2 = Nx2 + (Nx2%2)
+
+    t0 = PrePropogation(x, lp.f, g.z.points[0] ) + sz/numpy.sqrt(2)
+#    
+    xmax = lp.a*numpy.sqrt(r1(g.z.points[0], cp))
+    Nx2 = int(15*xmax*lp.Nx/lp.size); Nx2 = Nx2 + (Nx2%2)
     if(Nx2 > lp.Nx): 
         Nx2 = lp.Nx
         y = x
@@ -98,7 +99,7 @@ def Run(s, lp):
                               x._lps[i]._field[((lp.Nx - Nx2)//2) : ((lp.Nx + Nx2)//2), 
                                                ((lp.Nx - Nx2)//2) : ((lp.Nx + Nx2)//2)]))      
         y = lpPulse(s.lambdas, x.get_amplitudes(), lp.size*Nx2/lp.Nx,  Nx2, sub_lps)    
-        lp2 = namedtuplesGaussTF.LaunchParams(lp.n_jobs, Nx2, lp.Nz, lp.Nt, lp.size*Nx2/lp.Nx, lp.f, lp.w1, lp.alpha, lp.b )
+        lp2 = namedtuplesAxiconTF.LaunchParams(lp.n_jobs, Nx2, lp.Nz, lp.Nt, lp.size*Nx2/lp.Nx, lp.f, lp.w1, lp.sz, lp.a, lp.theta, lp.alpha, lp.b )
         x = None
     
     start_time = timeit.default_timer()
@@ -111,43 +112,51 @@ def Run(s, lp):
     
 #plt.rcParams["figure.figsize"] = [12, 8]
 Izt0yx = None; Iztyx = None; Ixtyz = None; Iytxz = None;
+Iyz2p = None; Ixz2p = None; Ixy2p = None
 gc.collect()
 
 s = SpecGenerator.SpecGenerate(800*nm, 3*nm, 120, False)
 n_jobs = 2
-Nx=1200; Nz=26; Nt=40
+Nx= 1200; Nz=100; Nt=100
 size = 10*mm;
+
 f = 50*mm
-w1 = 0.1*mm
-w0 = f/(2*numpy.pi/s.lambda0)/w1 #0.01*mm 
-alpha = 0.15*mm # mm*p   s
-b = 5*10**4  #fs**2
 
-#sz = k0*w1**2
-launch_time = time.strftime("%Y%m%d%H%M%S", time.gmtime());
+
+w1 = 0.1*mm #0.06 * 2/(a*2*numpy.pi/s.lambda0) #sigma_zw #0.0005
+sz = 500*mm 
+alpha = 0.15 *mm # # mm*ps
+r
+b = 5*10**4   #fs**2
+
+
+k0 = (2*numpy.pi/s.lambda0)
+a = w1
+n = 1.5
+theta = numpy.arctan( 2.*1/(k0*(n - 1)*a ) ) #1/180*numpy.pi
+
+win = sz / (a*k0)
+
 #
-#for ascale in numpy.linspace(1.5, 0.1, 6):
-#   for wscale in numpy.linspace(0.5, 5, 5):
-#       for bscale in numpy.linspace(0, 2.5, 8):
+#for bscale in numpy.linspace(-0.5, 3, 8):
 
+bscale = 5
 ascale = 1
-wscale = 1  
-bscale = 1          
-            
-print(wscale, bscale, ascale)
 
-#Nx = max(min(int(1200*ascale),1800), 400)
-size = 3*mm*ascale
+print(bscale)
 
-lp = namedtuplesGaussTF.LaunchParams(n_jobs, Nx, Nz, Nt, size, f, w0/wscale, alpha*ascale,  b*bscale )
-
+lp = namedtuplesAxiconTF.LaunchParams(n_jobs, Nx, Nz, Nt, size, f, f/(2*numpy.pi/s.lambda0)/w1 , sz, a, theta, alpha*ascale, b*bscale)
 Izt0yx,s,lp,cp,g = Run(s, lp)
-    
-dirname = 'E:\\ResearchData\\FourierOptics\\GaussianTF\\' + \
-                           launch_time  + '_' + \
-                           'f=' + str(lp.f) + '_w1=' + str('%.2E' % (lp.w1) ) + \
-                           '_alpha=' + str('%.2E' % lp.alpha) + '_b=' + str('%.2E' % (b*bscale) )           
+
+dirname = 'C:\\Users\\Basil\\ResearchData\\FourierOptics\\AxiconTF\\' + \
+                           time.strftime("%Y%m%d%H%M%S", time.gmtime())  + '_' + \
+                           'f=' + str(lp.f) + '_w1=' + str('%.2E' % lp.w1) + \
+                           '_alpha=' + str('%.2E' % lp.alpha) + '_b=' + str('%.2E' % lp.b)            
 os.mkdir(dirname)
 SaveLoad.DumpParamsToDisk(Izt0yx, s, lp, cp, g, dirname)
-                            
+#
+#wt_z,wx_z,wy_z = PropogationFunctions.Ws_z(lp, g, Izt0yx)
+#plt.plot(g.z.points, wt_z/3e-7, 'o-')
+#plt.show()
+
 

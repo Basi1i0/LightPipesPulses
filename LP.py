@@ -52,6 +52,9 @@ class LP:
         return (self.__class__, (self._size, self._wavelength, self._N, self._field) )
     
     def GratingX(self, algular_dispersion, lambda0 = 500e-9):
+        if algular_dispersion == 0:
+            return
+        
         tilt = algular_dispersion*(self._wavelength - lambda0)
         pointsperperiod = 2*numpy.pi*self._wavelength/numpy.abs(tilt)*self._N/self._size
         if pointsperperiod < 10:

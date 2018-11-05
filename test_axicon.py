@@ -15,6 +15,7 @@ from joblib import Parallel, delayed
 from LightPipes import cm, mm, nm
 
 import scipy
+import scipy.special
 import StepsGenerator
 
 def AxiconZ(z):
@@ -24,16 +25,16 @@ ms = list([])
 #for scale in range(0,20):
 #print(scale)
 
-lambda0 = 802*nm
-N = 500
-size = 1*mm
+lambda0 = 795*nm
+N = 800
+size = 10*mm #10*mm
 xs =  numpy.linspace(-size/2, size/2, N)
 
-f = 10*mm
+f = 50*mm
 
-w1 = 0.01*mm
-sz = 5*mm #a * k0 * w0 
-alpha = (0.02*mm) 
+w1 = 0.08*mm
+sz = 500*mm #a * k0 * w0 
+alpha = (0.015*mm) 
 
 
 k0 = (2*numpy.pi/lambda0)
@@ -46,20 +47,19 @@ w0 = sz / (a*k0)#*(random.random() + 0.5) #sigma_zw #0.0005
 
 x = LP(size, lambda0, N)
 
-x.GaussAperture(w0, 0*mm, 0, 1)
+x.GaussAperture(w0, 0, 0, 1)
+
 x.Axicon(numpy.pi - theta, n, 0, 0)
-
 x.Forvard( sz/numpy.sqrt(2) )
-
 x.GratingX(alpha*2*numpy.pi*(2.998*1e-4) / (f*lambda0**2) , 800e-9)
 
 x.Forvard( f )
 x.Lens(f, 0, 0)
 x.Forvard( 2*f )
 x.Lens(f, 0, 0)
-#x.Forvard( f - a * k0 * w0 / numpy.sqrt(2) )
+#x.Forvard( f - sz / numpy.sqrt(2) )
 
-zs,start_z,end_z,steps_z,delta_z = StepsGenerator.StepsGenerate(0, 2*f, 200)
+zs,start_z,end_z,steps_z,delta_z = StepsGenerator.StepsGenerate(0, f+2*sz, 100) #
  
 intensities_z = numpy.full( (len(zs), x.getGridDimension(), x.getGridDimension()), numpy.NaN);
 
@@ -76,11 +76,15 @@ plt.show()
 plt.plot(zs / mm, intensities_z[:,N//2, N//2] / max(intensities_z[:,N//2, N//2]), 'o' )
 plt.plot(zs / mm, AxiconZ(zs - f + sz/numpy.sqrt(2) ) / max( AxiconZ(zs - f + sz/numpy.sqrt(2) )) )
 plt.axvline(( f - sz/numpy.sqrt(2) ) / mm, )
+plt.axvline( f / mm, )
+#plt.plot(zs / mm, AxiconZ(zs) / max( AxiconZ(zs  )) )
+#plt.axvline(sz/numpy.sqrt(2) / mm, )
 plt.xlabel('Z, mm'); plt.ylabel('I') 
 plt.show()
 
-plt.plot(xs / mm, intensities_z[ numpy.argmax(intensities_z[:,N//2, N//2]), :, N//2] / max(intensities_z[ numpy.argmax(intensities_z[:,N//2, N//2]), :, N//2] ), 'o' )
-plt.plot(xs / mm, scipy.special.jv(0, xs/a)**2 )
+xrange = range(int(0.4*N),int(0.6*N))
+plt.plot(xs[xrange] / mm, intensities_z[ numpy.argmax(intensities_z[:,N//2, N//2]), xrange, N//2] / max(intensities_z[ numpy.argmax(intensities_z[:,N//2, N//2]), :, N//2] ), 'o' )
+plt.plot(xs[xrange] / mm, scipy.special.jv(0, xs[xrange]/a)**2 )
 plt.xlabel('X, mm'); plt.ylabel('I') 
 plt.show()
 

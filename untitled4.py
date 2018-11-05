@@ -4,19 +4,23 @@ Created on Tue Jul 17 15:56:31 2018
 
 @author: Basil
 """
+from SpecGenerator import SpecGenerate
+from numpy import sqrt, linspace, swapaxes, mean, diff
+from PropogationFunctions import density_var
+
 lambdas,amps,sigma_s,lambda0,steps_s,tau  = SpecGenerate(800*nm, 3*nm, 100, False)
-b = 4e4 # [fs**2]
+b = 5e4 # [fs**2]
 tau2 = tau*sqrt(1 + (b/2*(3e-7/tau)**2)**2 )
 
 N = 5
 size = 0.02
 x = lpPulse(lambdas, amps, size, N)#LP(size, 800e-9, N)#
-#x.AddDispersion(b, 2)
+x.AddDispersion(b**2/2, 4)
 #x.AddDispersion(-4000000000, 3)
 
     
 
-ts = linspace(-10*tau, 10*tau, 50)
+ts = linspace(-20*tau, 20*tau, 100)
 intensities = []
 fields = []
 
